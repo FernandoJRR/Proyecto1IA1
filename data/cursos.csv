@@ -1,0 +1,11 @@
+nombre,codigo,carrera,semestre,seccion,tipo
+Cálculo Diferencial,MAT101,Ingeniería Civil,1,A,Obligatorio
+Física General,FIS101,Ingeniería Civil,1,A,Obligatorio
+Dibujo Técnico,DIB101,Ingeniería Civil,1,A,Obligatorio
+Introducción a la Programación,INF101,Ingeniería en Sistemas,1,B,Obligatorio
+Fundamentos de Sistemas,INF102,Ingeniería en Sistemas,1,B,Obligatorio
+Estructuras de Datos,INF201,Ingeniería en Sistemas,2,B,Obligatorio
+Estadística,EST101,Ingeniería Industrial,1,C,Obligatorio
+Química,QUI101,Ingeniería Industrial,1,C,Obligatorio
+Física Aplicada,FIS102,Ingeniería Industrial,1,C,Obligatorio
+Resistencia de Materiales,MEC101,Ingeniería Civil,2,A,Obligatorio
