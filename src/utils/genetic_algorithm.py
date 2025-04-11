@@ -19,6 +19,7 @@ class AmbienteAlgoritmo:
 
         self.resultado: Individuo | None = None
         self.conflictos_por_generacion: list = []
+        self.conflictos_mejor_individuo: int = 0
         self.iteraciones_optimas: int = 0
         self.tiempo_ejecucion: float = 0
         self.porcentaje_continuidad: float = 0
@@ -58,8 +59,9 @@ class AmbienteAlgoritmo:
 
     # Función de aptitud: 
     # Cuenta conflictos donde dos cursos tienen asignado el mismo salón y el mismo horario.
-    def funcion_aptitud(self, individuo: Individuo):
+    def funcion_aptitud(self, individuo: Individuo) -> tuple[float, int]:
         penalizacion = 0
+        conflictos = 0
         cursos = list(individuo.items())
         for i in range(len(cursos)):
             curso_i, asignacion_i = cursos[i]
@@ -70,7 +72,8 @@ class AmbienteAlgoritmo:
 
                 # Conflicto de salón y horario
                 if salon_i == salon_j and hora_i == hora_j:
-                    penalizacion += 1
+                    penalizacion += 5
+                    conflictos += 1
                 # Conflicto si hay mismo docente en el mismo horario
                 if (
                     docente_i is not None and
@@ -78,7 +81,7 @@ class AmbienteAlgoritmo:
                     hora_i == hora_j
                 ):
                     penalizacion += 1
-
+                    conflictos += 1
                 # Penalizacion si hay dos cursos del mismo semestre y carrera en el mismo horario
                 if (
                     curso_i.semestre == curso_j.semestre and
@@ -92,12 +95,38 @@ class AmbienteAlgoritmo:
         penalizacion_continuidad = 10 - punteo_continuidad
         penalizacion += penalizacion_continuidad
 
-        return penalizacion
+        return (penalizacion, conflictos)
+
+    # Mutación Reparadora: 
+    # para cada curso, con cierta probabilidad se prueban varias alternativas y se escoge la que minimice la función de aptitud.
+    def mutacion_reparadora(self, individuo: Individuo, tasa_mutacion=0.1, n_alternativas=3) -> dict:
+        for curso in individuo:
+            if random.random() < tasa_mutacion:
+                gen_original = individuo[curso]
+                mejor_gen = gen_original
+                mejor_adaptacion, _ = self.funcion_aptitud(individuo)
+                # Probar n alternativas
+                for _ in range(n_alternativas):
+                    nuevo_salon = random.choice(self.salones)
+                    nuevo_horario = random.choice(self.horarios)
+                    docentes_permitidos = self.docentes_por_curso.get(curso.codigo, [])
+                    nuevo_profesor = random.choice(docentes_permitidos) if docentes_permitidos else None
+
+                    # Asignar temporalmente la nueva opción
+                    individuo[curso] = (nuevo_salon, nuevo_horario, nuevo_profesor)
+                    nueva_adaptacion, _ = self.funcion_aptitud(individuo)
+                    # Se elige la opción que minimiza la penalización de conflictos
+                    if nueva_adaptacion < mejor_adaptacion:
+                        mejor_adaptacion = nueva_adaptacion
+                        mejor_gen = (nuevo_salon, nuevo_horario, nuevo_profesor)
+                # Reasignar el mejor gen encontrado
+                individuo[curso] = mejor_gen
+        return individuo
 
     # Selección: Se utiliza torneo simple
     def seleccion_torneo(self, poblacion, tamano=3):
         candidatos = random.sample(poblacion, tamano)
-        candidatos.sort(key=lambda ind: self.funcion_aptitud(ind))
+        candidatos.sort(key=lambda ind: self.funcion_aptitud(ind)[0])
         return candidatos[0]
 
     # Cruce: Se realiza un cruce de punto medio para mezclar asignaciones
@@ -173,15 +202,16 @@ class AmbienteAlgoritmo:
         # Creación de la población inicial
         poblacion = [self.crear_individuo() for _ in range(poblacion_inicial)]
 
+        conflictos: int = 0
         self.conflictos_por_generacion = []
         convergencia = generaciones  # Si no converge, asumimos que se realizaron todas las iteraciones
         # Bucle principal del algoritmo genético
         for generacion in range(generaciones):
-            poblacion = sorted(poblacion, key=lambda ind: self.funcion_aptitud(ind))
+            poblacion = sorted(poblacion, key=lambda ind: self.funcion_aptitud(ind)[0])
             mejor_individuo = poblacion[0]
-            aptitud = self.funcion_aptitud(mejor_individuo)
-            self.conflictos_por_generacion.append(aptitud)
-            print("Generación", generacion, "Aptitud:", self.funcion_aptitud(mejor_individuo))
+            aptitud, conflictos = self.funcion_aptitud(mejor_individuo)
+            self.conflictos_por_generacion.append(conflictos)
+            print("Generación", generacion, "Aptitud:", aptitud)
             
             # Criterio de parada: Aptitud 0 significa sin conflictos
             if aptitud == 0:
@@ -193,7 +223,7 @@ class AmbienteAlgoritmo:
                 padre1 = self.seleccion_torneo(poblacion)
                 padre2 = self.seleccion_torneo(poblacion)
                 hijo = self.cruza(padre1, padre2)
-                hijo = self.mutacion(hijo, tasa_mutacion)
+                hijo = self.mutacion_reparadora(hijo, tasa_mutacion)
                 nueva_poblacion.append(hijo)
             
             poblacion = nueva_poblacion
@@ -201,6 +231,7 @@ class AmbienteAlgoritmo:
         end_time = time.time()
 
         self.resultado = mejor_individuo
+        self.conflictos_mejor_individuo = conflictos
         self.tiempo_ejecucion = end_time - start_time
         self.iteraciones_optimas = convergencia
         self.porcentaje_continuidad = self.calcular_continuidad(mejor_individuo)

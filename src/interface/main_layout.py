@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (
-    QLayout, QMainWindow, QWidget, QTabWidget, QLabel, QLineEdit, QPushButton,
+    QLayout, QMainWindow, QScrollArea, QWidget, QTabWidget, QLabel, QLineEdit, QPushButton,
     QTextEdit, QVBoxLayout, QGridLayout, QMessageBox, QGroupBox,
     QTableWidget, QTableWidgetItem
 )
@@ -19,15 +19,7 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        # Crear el QTabWidget
         self.tabs = QTabWidget()
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.addWidget(self.tabs)
-        
-        container = QWidget()
-        container.setLayout(main_layout)
-        self.setCentralWidget(container)
 
         # Crear las pestañas
         self.tab_ga = GALayout()
@@ -42,3 +34,17 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.tab_salones, "Salones")
         self.tabs.addTab(self.tab_relaciones, "Relaciones")
 
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.addWidget(self.tabs)
+        
+        container = QWidget()
+        container.setLayout(main_layout)
+        #self.setCentralWidget(container)
+
+        # Aquí se envuelve el widget contenedor en un QScrollArea
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(container)
+        scroll_area.setWidgetResizable(True)
+
+        self.setCentralWidget(scroll_area)

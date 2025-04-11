@@ -1,5 +1,5 @@
 import os
-from reportlab.lib.pagesizes import landscape, letter, legal
+from reportlab.lib.pagesizes import landscape, legal
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
@@ -69,8 +69,10 @@ def crear_horarios_pdf(cursos):
                 salon_asignado, hora_asignada, docente = asignacion
                 if hora_asignada == hora and salon_asignado == salon:
                     # Si hay docente, se muestra entre paréntesis.
-                    doc_text = f" ({docente.nombre})" if docente is not None and hasattr(docente, "nombre") else ""
-                    cell_texts.append(f"{curso.nombre}(S:{curso.semestre}){doc_text}")
+                    cell_texts.append(f"{curso.nombre}")
+                    cell_texts.append(f"{docente.nombre}")
+                    cell_texts.append(f"(S:{curso.semestre})")
+                    cell_texts.append(f"(C:{curso.carrera})")
             # Crear un Paragraph para la celda con breaklines
             contenido = "\n".join(cell_texts) if cell_texts else ""
             paragraph = Paragraph(contenido, cell_style)
@@ -91,7 +93,7 @@ def crear_horarios_pdf(cursos):
     elements.append(Spacer(1, 6))
 
     # Calcular ancho de columnas fijos (ajustar según necesidad, por ejemplo 50 puntos por columna)
-    col_width = 100
+    col_width = 60
     num_cols = len(data[0])
     colWidths = [col_width] * num_cols
 

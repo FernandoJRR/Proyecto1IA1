@@ -1,7 +1,8 @@
 from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QVBoxLayout, QWidget
 
 from interface.pdf_viewer import PDFViewer
+from interface.plot_viewer import ConflictPlot
 from utils.genetic_algorithm import AmbienteAlgoritmo
 
 class GALayout(QWidget):
@@ -37,20 +38,39 @@ class GALayout(QWidget):
 
         # Grupo para mostrar el PDF del reporte (vacío al inicio)
         self.pdf_group = QGroupBox("Horario Generado")
+        self.pdf_group.setMinimumHeight(400)
         self.pdf_layout = QVBoxLayout()
         self.pdf_group.setLayout(self.pdf_layout)
         self.pdf_viewer = None
         layout.addWidget(self.pdf_group)
 
-        # Grupo para mostrar los reportes del algoritmo
-        report_group = QGroupBox("Reportes del Algoritmo")
+        reports_hlayout = QHBoxLayout()
+
+        report_group = QGroupBox("Individuo Seleccionado")
         report_layout = QVBoxLayout()
         self.report_text = QTextEdit()
         self.report_text.setReadOnly(True)
         report_layout.addWidget(self.report_text)
         report_group.setLayout(report_layout)
-        layout.addWidget(report_group)
+        reports_hlayout.addWidget(report_group)
 
+        # Grupo para mostrar los reportes del algoritmo
+        history_group = QGroupBox("Reportes del Algoritmo")
+        history_layout = QVBoxLayout()
+        self.history_text = QTextEdit()
+        self.history_text.setReadOnly(True)
+        history_layout.addWidget(self.history_text)
+        history_group.setLayout(history_layout)
+        reports_hlayout.addWidget(history_group)
+
+        layout.addLayout(reports_hlayout)
+
+        # Grupo para mostrar el PDF del reporte (vacío al inicio)
+        self.plot_group = QGroupBox("")
+        self.plot_group.setMinimumHeight(400)
+        self.plot_layout = QVBoxLayout()
+        self.plot_group.setLayout(self.plot_layout)
+        layout.addWidget(self.plot_group)
 
         # Asignar el layout al widget
         self.setLayout(layout)
@@ -74,17 +94,24 @@ class GALayout(QWidget):
         tiempo = result_data.get("tiempo", "N/A")
         iteraciones = result_data.get("iteraciones", "N/A")
         conflictos = result_data.get("conflictos", [])
-        final_conflicto = conflictos[-1] if conflictos else "N/A"
+        final_conflicto = (sum(conflictos) / len(conflictos)) if conflictos else "N/A"
+        conflictos_mejor_individuo = result_data.get("conflictos_mejor_individuo", "N/A")
         continuidad = result_data.get("continuidad", "N/A")
         memoria = result_data.get("memoria", "N/A")
+
         report_output = (
-            f"Tiempo de Ejecución: {tiempo} s\n"
-            f"Iteraciones Necesarias: {iteraciones}\n"
-            f"Número de Conflictos: {final_conflicto}\n"
+            f"Conflictos: {conflictos_mejor_individuo}\n"
             f"Porcentaje de Continuidad: {continuidad}%\n"
-            f"Espacio en Memoria Consumido: {memoria} MB\n"
         )
         self.report_text.setPlainText(report_output)
+
+        history_output = (
+            f"Tiempo de Ejecución: {tiempo} s\n"
+            f"Iteraciones Necesarias: {iteraciones}\n"
+            f"Conflictos Promedio: {final_conflicto}\n"
+            f"Espacio en Memoria Consumido: {memoria} MB\n"
+        )
+        self.history_text.setPlainText(history_output)
 
         # Verificar si se generó el reporte PDF (se asume que ambiente.pdf_report fue asignado)
         pdf_path = result_data.get("reporte_horarios_pdf", None)
@@ -96,6 +123,17 @@ class GALayout(QWidget):
             # Instanciar PDFViewerWidget
             self.pdf_viewer = PDFViewer(pdf_path)
             self.pdf_layout.addWidget(self.pdf_viewer)
+
+        # Mostrar gráfica de conflictos a lo largo de las generaciones.
+        # Se asume que 'conflictos' es una lista de enteros/floats.
+        if conflictos:
+            # Si ya existe una gráfica en el layout, elimínala primero.
+            if hasattr(self, "conflict_plot"):
+                self.plot_layout.removeWidget(self.conflict_plot)
+                self.conflict_plot.deleteLater()
+            self.conflict_plot = ConflictPlot(conflictos, self)
+            # Agregar la gráfica al final del layout principal.
+            self.plot_layout.addWidget(self.conflict_plot)
 
         self.run_button.setEnabled(True)
 
@@ -125,6 +163,7 @@ class GAWorker(QThread):
         result_data = {
             "horario": ambiente.resultado,
             "conflictos": ambiente.conflictos_por_generacion,
+            "conflictos_mejor_individuo": ambiente.conflictos_mejor_individuo,
             "iteraciones": ambiente.iteraciones_optimas,
             "tiempo": ambiente.tiempo_ejecucion,
             "continuidad": ambiente.porcentaje_continuidad,
