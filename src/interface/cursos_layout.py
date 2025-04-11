@@ -15,6 +15,16 @@ class CursosTab(QWidget):
 
         self.table_cursos = QTableWidget()
         cursos = cargar_cursos("data/cursos.csv")
+        self.configurar_tabla(cursos)
+        layout.addWidget(self.table_cursos)
+
+        # Botón para guardar el estado de la tabla
+        self.save_button = QPushButton("Actualizar cursos")
+        self.save_button.clicked.connect(self.actualizar_cursos)
+        layout.addWidget(self.save_button)
+
+    def configurar_tabla(self, cursos):
+        self.table_cursos.clear()  # Limpia contenidos previos si es necesario
         self.table_cursos.setRowCount(len(cursos))
         self.table_cursos.setColumnCount(6)
         self.table_cursos.setHorizontalHeaderLabels(["Nombre", "Código", "Carrera", "Semestre", "Sección", "Tipo"])
@@ -25,12 +35,7 @@ class CursosTab(QWidget):
             self.table_cursos.setItem(row, 3, QTableWidgetItem(str(curso.semestre)))
             self.table_cursos.setItem(row, 4, QTableWidgetItem(curso.seccion))
             self.table_cursos.setItem(row, 5, QTableWidgetItem(curso.tipo))
-        layout.addWidget(self.table_cursos)
 
-        # Botón para guardar el estado de la tabla
-        self.save_button = QPushButton("Actualizar cursos")
-        self.save_button.clicked.connect(self.actualizar_cursos)
-        layout.addWidget(self.save_button)
 
     def actualizar_cursos(self):
         # Abrir diálogo para seleccionar el archivo CSV con los nuevos cursos
@@ -40,6 +45,7 @@ class CursosTab(QWidget):
                 nuevos_cursos = cargar_cursos(file_path)
                 # Actualiza la tabla con los nuevos cursos, sobrescribiendo los actuales
                 guardar_cursos(nuevos_cursos, "data/cursos.csv")
+                self.configurar_tabla(nuevos_cursos)
                 QMessageBox.information(self, "Actualizado", "Los cursos se han actualizado exitosamente.")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error al cargar los cursos: {e}")

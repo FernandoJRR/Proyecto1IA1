@@ -87,7 +87,10 @@ class AmbienteAlgoritmo:
                 ):
                     penalizacion += 1
 
-        self.calcular_continuidad(individuo)
+        punteo_continuidad = (self.calcular_continuidad(individuo) * 10) / 100
+        # Penalizacion por falta de continuidad es inversamente proporcional al porcentaje de continuidad
+        penalizacion_continuidad = 10 - punteo_continuidad
+        penalizacion += penalizacion_continuidad
 
         return penalizacion
 
@@ -123,28 +126,43 @@ class AmbienteAlgoritmo:
                 individuo[curso] = (nuevo_salon, nuevo_horario, nuevo_profesor)
         return individuo
 
-    def calcular_continuidad(self, individuo) -> float:
+    def calcular_continuidad(self, individuo: Individuo) -> float:
         """
-        Calcula el porcentaje de continuidad (qué porcentaje de cursos del mismo semestre quedaron en horarios consecutivos).
-        Agrupa los cursos por (carrera, semestre), ordena los horarios según self.horarios y cuenta parejas consecutivas.
+        Calcula la continuidad promedio del horario para cada grupo de cursos,
+        donde cada grupo se define por (carrera, semestre). Para cada grupo que tenga
+        más de un curso, se calcula el porcentaje de parejas de cursos asignados en horarios consecutivos
+        (según el orden en self.horarios) y se promedia el porcentaje obtenido en todos los grupos.
+        Si ningún grupo tiene más de un curso, se retorna 100.
         """
         grupos = {}
+
+        # Agrupa los cursos según carrera y semestre.
         for curso in individuo:
             key = (curso.carrera, curso.semestre)
             grupos.setdefault(key, []).append(individuo[curso][1])
-        total = 0
-        consecutivos = 0
+
+        suma_continuidad = 0.0
+        grupos_validos = 0
+
         for horas in grupos.values():
+            # Convertir cada horario en su índice según self.horarios
             indices = sorted([self.horarios.index(h) for h in horas if h in self.horarios])
-            total += len(indices)
-            # Contar parejas consecutivas
+            # Solo consideramos grupos con al menos dos cursos
+            if len(indices) < 2:
+                continue
+            total_pares = len(indices) - 1
+            consecutivos = 0
             for i in range(1, len(indices)):
-                if indices[i] - indices[i-1] == 1:
+                if indices[i] - indices[i - 1] == 1:
                     consecutivos += 1
-        if total > 1:
-            return (consecutivos / (total - 1)) * 100
+            continuidad = (consecutivos / total_pares) * 100
+            suma_continuidad += continuidad
+            grupos_validos += 1
+
+        if grupos_validos > 0:
+            return suma_continuidad / grupos_validos
         else:
-            return 0
+            return 100
 
     def ejecutar(self, poblacion_inicial, generaciones, tasa_mutacion):
         start_time = time.time()
