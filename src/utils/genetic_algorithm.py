@@ -211,21 +211,6 @@ class AmbienteAlgoritmo:
         else:
             return self.cruza(padre1, padre2)
 
-    def cruza_multiparental(self, poblacion: list[Individuo], generacion: int, total_generaciones: int, num_padres: int = 3) -> Individuo:
-        """
-        Operador de cruce multipaternal:
-        Selecciona 'num_padres' de la población (por ejemplo, mediante torneo o de forma aleatoria)
-        y para cada curso, asigna la solución proveniente de uno de ellos, elegido al azar.
-        Esto incrementa la diversidad al mezclar material genético de más de dos padres.
-        """
-        # Seleccionar 'num_padres' individuos de la población de forma aleatoria
-        padres = random.sample(poblacion, num_padres)
-        hijo = {}
-        for curso in self.cursos:
-            # Para cada curso, elegir aleatoriamente el gen (la asignación) de uno de los padres
-            hijo[curso] = random.choice([padre[curso] for padre in padres])
-        return hijo
-
     def tasa_mutacion_dinamica(self, tasa_inicial: float, generacion: int, total_generaciones: int, min_tasa: float = 0.05) -> float:
         """
         Calcula la tasa de mutación dinámica.
