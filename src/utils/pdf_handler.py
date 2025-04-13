@@ -61,7 +61,7 @@ def crear_horarios_pdf(cursos):
 
     # Para cada horario, crear una fila cuyo primer elemento es el horario y el resto son las celdas para cada salón.
     for hora in horarios:
-        row = [Paragraph(hora, cell_style)]
+        row = [Paragraph(f"{hora} - {hora}", cell_style)]
         for salon in salones_list:
             # Buscar si existe algún curso asignado a ese salón y a ese horario.
             cell_texts = []

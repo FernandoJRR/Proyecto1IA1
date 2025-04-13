@@ -1,8 +1,10 @@
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtGui import QTextCursor
 from PyQt5.QtWidgets import QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QVBoxLayout, QWidget
 
+from interface.logger import Logger
 from interface.pdf_viewer import PDFViewer
-from interface.plot_viewer import ConflictPlot
+from interface.plot_viewer import ConflictPlot, ContinuidadPlot
 from utils.genetic_algorithm import AmbienteAlgoritmo
 
 class GALayout(QWidget):
@@ -14,6 +16,7 @@ class GALayout(QWidget):
         # Layout principal de la pestaña "Generar Horario"
         layout = QVBoxLayout()
 
+        header_hlayout = QHBoxLayout()
         # Grupo de parámetros
         param_group = QGroupBox("Parámetros del Algoritmo")
         param_layout = QGridLayout()
@@ -23,18 +26,48 @@ class GALayout(QWidget):
         param_layout.addWidget(self.population_edit, 0, 1)
 
         param_layout.addWidget(QLabel("Número de Generaciones:"), 1, 0)
-        self.generations_edit = QLineEdit("100")
+        self.generations_edit = QLineEdit("50")
         param_layout.addWidget(self.generations_edit, 1, 1)
 
         param_layout.addWidget(QLabel("Tasa de Mutacion"), 2, 0)
-        self.tasa_mutacion_edit = QLineEdit("0.1")
+        self.tasa_mutacion_edit = QLineEdit("0.3")
         param_layout.addWidget(self.tasa_mutacion_edit, 2, 1)
+
+        param_layout.addWidget(QLabel("Penalizacion por Continuidad"), 3, 0)
+        self.penalizacion_continuidad_edit = QLineEdit("10")
+        param_layout.addWidget(self.penalizacion_continuidad_edit, 3, 1)
+
+        param_layout.addWidget(QLabel("Generaciones por Reinsercion"),4, 0)
+        self.generaciones_reinsercion_edit = QLineEdit("5")
+        param_layout.addWidget(self.generaciones_reinsercion_edit, 4, 1)
+
+        param_layout.addWidget(QLabel("Porcentaje de Reinsercion"), 5, 0)
+        self.porcentaje_reinsercion_edit = QLineEdit("0.3")
+        param_layout.addWidget(self.porcentaje_reinsercion_edit, 5, 1)
 
         self.run_button = QPushButton("Generar Horario")
         self.run_button.clicked.connect(self.start_ga)
-        param_layout.addWidget(self.run_button, 3, 0, 1, 2)
+        param_layout.addWidget(self.run_button, 6, 0, 1, 2)
         param_group.setLayout(param_layout)
-        layout.addWidget(param_group)
+        header_hlayout.addWidget(param_group)
+
+        # Creamos una pestaña o un grupo adicional para la consola
+        console_group = QGroupBox("Consola")
+        console_layout = QVBoxLayout()
+        # Obtenemos la instancia del Logger
+        self.console = Logger.instance()
+        # Opcionalmente, se pueden ajustar propiedades adicionales:
+        self.console.setSizePolicy(self.console.sizePolicy().Expanding, 
+                                   self.console.sizePolicy().Expanding)
+        self.console.textChanged.connect(
+            lambda: self.console.verticalScrollBar().setValue(self.console.verticalScrollBar().maximum()) #type: ignore
+        )
+        self.console.moveCursor(QTextCursor.End)
+        console_layout.addWidget(self.console)
+        console_group.setLayout(console_layout)
+        header_hlayout.addWidget(console_group)
+
+        layout.addLayout(header_hlayout)
 
         # Grupo para mostrar el PDF del reporte (vacío al inicio)
         self.pdf_group = QGroupBox("Horario Generado")
@@ -65,27 +98,36 @@ class GALayout(QWidget):
 
         layout.addLayout(reports_hlayout)
 
-        # Grupo para mostrar el PDF del reporte (vacío al inicio)
         self.plot_group = QGroupBox("")
         self.plot_group.setMinimumHeight(400)
         self.plot_layout = QVBoxLayout()
         self.plot_group.setLayout(self.plot_layout)
         layout.addWidget(self.plot_group)
 
+        self.plot_continuidad_group = QGroupBox("")
+        self.plot_continuidad_group.setMinimumHeight(400)
+        self.plot_continuidad_layout = QVBoxLayout()
+        self.plot_continuidad_group.setLayout(self.plot_continuidad_layout)
+        layout.addWidget(self.plot_continuidad_group)
+
         # Asignar el layout al widget
         self.setLayout(layout)
 
     def start_ga(self):
         try:
+            Logger.instance().clear()
             poblacion_inicial = int(self.population_edit.text())
             generaciones = int(self.generations_edit.text())
             tasa_mutacion = float(self.tasa_mutacion_edit.text())
+            penalizacion_continuidad = float(self.penalizacion_continuidad_edit.text())
+            generaciones_reinsercion = int(self.generaciones_reinsercion_edit.text())
+            porcentaje_reinsercion = float(self.porcentaje_reinsercion_edit.text())
         except ValueError:
             QMessageBox.critical(self, "Error", "Ingrese valores numéricos válidos.")
             return
 
         self.run_button.setEnabled(False)
-        self.worker = GAWorker(poblacion_inicial, generaciones, tasa_mutacion)
+        self.worker = GAWorker(poblacion_inicial, generaciones, tasa_mutacion, penalizacion_continuidad, generaciones_reinsercion, porcentaje_reinsercion)
         self.worker.result_signal.connect(self.display_result)
         self.worker.start()
 
@@ -94,6 +136,7 @@ class GALayout(QWidget):
         tiempo = result_data.get("tiempo", "N/A")
         iteraciones = result_data.get("iteraciones", "N/A")
         conflictos = result_data.get("conflictos", [])
+        continuidades = result_data.get("continuidades", [])
         final_conflicto = (sum(conflictos) / len(conflictos)) if conflictos else "N/A"
         conflictos_mejor_individuo = result_data.get("conflictos_mejor_individuo", "N/A")
         continuidad = result_data.get("continuidad", "N/A")
@@ -125,33 +168,48 @@ class GALayout(QWidget):
             self.pdf_layout.addWidget(self.pdf_viewer)
 
         # Mostrar gráfica de conflictos a lo largo de las generaciones.
-        # Se asume que 'conflictos' es una lista de enteros/floats.
         if conflictos:
-            # Si ya existe una gráfica en el layout, elimínala primero.
+            # Si ya existe una gráfica en el layout se elimina
             if hasattr(self, "conflict_plot"):
                 self.plot_layout.removeWidget(self.conflict_plot)
                 self.conflict_plot.deleteLater()
             self.conflict_plot = ConflictPlot(conflictos, self)
-            # Agregar la gráfica al final del layout principal.
+            # Agregar la grafica al final del layout principal.
             self.plot_layout.addWidget(self.conflict_plot)
+
+        # Mostrar gráfica de conflictos a lo largo de las generaciones.
+        if continuidades:
+            # Si ya existe una gráfica en el layout se elimina
+            if hasattr(self, "continuidad_plot"):
+                self.plot_continuidad_layout.removeWidget(self.continuidad_plot)
+                self.continuidad_plot.deleteLater()
+            self.continuidad_plot = ContinuidadPlot(continuidades, self)
+            # Agregar la grafica al final del layout principal.
+            self.plot_continuidad_layout.addWidget(self.continuidad_plot)
 
         self.run_button.setEnabled(True)
 
-# Definición del QThread para ejecutar el algoritmo genético en segundo plano
+# QThread para poder ejecutar el algoritmo dentro de la interfaz
 class GAWorker(QThread):
     # Señal que envía todos los datos del algoritmo (horario y reportes)
     result_signal = pyqtSignal(dict)
 
-    def __init__(self, poblacion_inicial: int, generaciones: int, tasa_mutacion: float, parent=None):
+    def __init__(self, poblacion_inicial: int, generaciones: int, tasa_mutacion: float, penalizacion_continuidad: float, 
+                 generaciones_reinsercion, porcentaje_reinsercion,
+                 parent=None):
         super().__init__(parent)
         self.population = poblacion_inicial
         self.generations = generaciones
         self.tasa_mutacion = tasa_mutacion
+        self.penalizacion_continuidad = penalizacion_continuidad
+        self.generaciones_reinsercion = generaciones_reinsercion
+        self.porcentaje_reinsercion = porcentaje_reinsercion
 
     def run(self):
         ambiente = AmbienteAlgoritmo()
         ambiente.preparar_data()
-        ambiente.ejecutar(self.population, self.generations, self.tasa_mutacion)
+        ambiente.ejecutar(self.population, self.generations, self.tasa_mutacion, self.penalizacion_continuidad, 
+                          self.generaciones_reinsercion, self.porcentaje_reinsercion)
 
         # Se asume que AmbienteAlgoritmo ha calculado los siguientes atributos:
         # - ambiente.resultado: el horario generado (dict)
@@ -163,6 +221,7 @@ class GAWorker(QThread):
         result_data = {
             "horario": ambiente.resultado,
             "conflictos": ambiente.conflictos_por_generacion,
+            "continuidades": ambiente.continuidad_por_generacion,
             "conflictos_mejor_individuo": ambiente.conflictos_mejor_individuo,
             "iteraciones": ambiente.iteraciones_optimas,
             "tiempo": ambiente.tiempo_ejecucion,
