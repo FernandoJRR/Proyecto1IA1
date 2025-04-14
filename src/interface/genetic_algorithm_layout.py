@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QVBoxLayout, QWidget
 
 from interface.logger import Logger
 from interface.pdf_viewer import PDFViewer
@@ -26,7 +26,7 @@ class GALayout(QWidget):
         param_layout.addWidget(self.population_edit, 0, 1)
 
         param_layout.addWidget(QLabel("Número de Generaciones:"), 1, 0)
-        self.generations_edit = QLineEdit("50")
+        self.generations_edit = QLineEdit("100")
         param_layout.addWidget(self.generations_edit, 1, 1)
 
         param_layout.addWidget(QLabel("Tasa de Mutacion"), 2, 0)
@@ -68,6 +68,33 @@ class GALayout(QWidget):
         header_hlayout.addWidget(console_group)
 
         layout.addLayout(header_hlayout)
+
+
+        # Grupo para parametros de evaluacion
+        eval_group = QGroupBox("Parámetros de Evaluacion")
+        eval_layout = QGridLayout()
+
+        self.evaluar_penalizacion_check = QCheckBox("Evaluar Penalizacion")
+        self.evaluar_penalizacion_check.setChecked(True)
+        eval_layout.addWidget(self.evaluar_penalizacion_check, 2, 0)
+        eval_layout.addWidget(QLabel("Penalización Esperada:"), 2, 1)
+        self.penalizacion_esperada_edit = QLineEdit("0")
+        eval_layout.addWidget(self.penalizacion_esperada_edit, 2, 2)
+
+        self.evaluar_conflictos_check = QCheckBox("Evaluar Conflictos")
+        eval_layout.addWidget(self.evaluar_conflictos_check, 0, 0)
+        eval_layout.addWidget(QLabel("Conflictos Esperados:"), 0, 1)
+        self.conflictos_esperados_edit = QLineEdit("0")
+        eval_layout.addWidget(self.conflictos_esperados_edit, 0, 2)
+
+        self.evaluar_continuidad_check = QCheckBox("Evaluar Continuidad")
+        eval_layout.addWidget(self.evaluar_continuidad_check, 1, 0)
+        eval_layout.addWidget(QLabel("Continuidad Esperada:"), 1, 1)
+        self.continuidad_esperada_edit = QLineEdit("0")
+        eval_layout.addWidget(self.continuidad_esperada_edit, 1, 2)
+
+        eval_group.setLayout(eval_layout)
+        layout.addWidget(eval_group)
 
         # Grupo para mostrar el PDF del reporte (vacío al inicio)
         self.pdf_group = QGroupBox("Horario Generado")
@@ -122,12 +149,25 @@ class GALayout(QWidget):
             penalizacion_continuidad = float(self.penalizacion_continuidad_edit.text())
             generaciones_reinsercion = int(self.generaciones_reinsercion_edit.text())
             porcentaje_reinsercion = float(self.porcentaje_reinsercion_edit.text())
+
+            evaluar_conflictos = self.evaluar_conflictos_check.isChecked()
+            conflictos_esperados = int(self.conflictos_esperados_edit.text())
+            
+            evaluar_continuidad = self.evaluar_continuidad_check.isChecked()
+            continuidad_esperada = int(self.continuidad_esperada_edit.text())
+            
+            evaluar_penalizacion = self.evaluar_penalizacion_check.isChecked()
+            penalizacion_esperada = int(self.penalizacion_esperada_edit.text())
         except ValueError:
             QMessageBox.critical(self, "Error", "Ingrese valores numéricos válidos.")
             return
 
         self.run_button.setEnabled(False)
-        self.worker = GAWorker(poblacion_inicial, generaciones, tasa_mutacion, penalizacion_continuidad, generaciones_reinsercion, porcentaje_reinsercion)
+        self.worker = GAWorker(poblacion_inicial, generaciones, tasa_mutacion, penalizacion_continuidad, 
+                               generaciones_reinsercion, porcentaje_reinsercion, 
+                               evaluar_conflictos, conflictos_esperados, 
+                               evaluar_continuidad, continuidad_esperada, 
+                               evaluar_penalizacion, penalizacion_esperada)
         self.worker.result_signal.connect(self.display_result)
         self.worker.start()
 
@@ -196,6 +236,9 @@ class GAWorker(QThread):
 
     def __init__(self, poblacion_inicial: int, generaciones: int, tasa_mutacion: float, penalizacion_continuidad: float, 
                  generaciones_reinsercion, porcentaje_reinsercion,
+                 evaluar_conflictos, conflictos_esperados,
+                 evaluar_continuidad, continuidad_esperada,
+                 evaluar_penalizacion, penalizacion_esperada,
                  parent=None):
         super().__init__(parent)
         self.population = poblacion_inicial
@@ -205,10 +248,23 @@ class GAWorker(QThread):
         self.generaciones_reinsercion = generaciones_reinsercion
         self.porcentaje_reinsercion = porcentaje_reinsercion
 
+        self.evaluar_conflictos = evaluar_conflictos
+        self.conflictos_esperados = conflictos_esperados
+
+        self.evaluar_continuidad = evaluar_continuidad
+        self.continuidad_esperada = continuidad_esperada
+
+        self.evaluar_penalizacion = evaluar_penalizacion
+        self.penalizacion_esperada = penalizacion_esperada
+
     def run(self):
         ambiente = AmbienteAlgoritmo()
         ambiente.preparar_data()
-        ambiente.ejecutar(self.population, self.generations, self.tasa_mutacion, self.penalizacion_continuidad, 
+        ambiente.ejecutar(self.population, self.generations, self.tasa_mutacion, 
+                          self.penalizacion_continuidad, 
+                          self.conflictos_esperados, self.evaluar_conflictos,
+                          self.continuidad_esperada, self.evaluar_continuidad,
+                          self.penalizacion_esperada, self.evaluar_penalizacion,
                           self.generaciones_reinsercion, self.porcentaje_reinsercion)
 
         # Se asume que AmbienteAlgoritmo ha calculado los siguientes atributos:

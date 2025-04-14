@@ -129,16 +129,14 @@ class AmbienteAlgoritmo:
 
     # Mutación Reparadora 
     # para cada curso, con cierta probabilidad se prueban varias alternativas y se escoge la que minimice la función de aptitud.
-    def mutacion_reparadora(self, individuo: Individuo, tasa_mutacion=0.1, n_alternativas_init=3, n_alternativas_max=5) -> dict:
+    def mutacion_reparadora(self, individuo: Individuo, tasa_mutacion=0.1, n_alternativas=3) -> dict:
         for curso in individuo:
             if random.random() < tasa_mutacion:
                 gen_original = individuo[curso]
                 mejor_gen = gen_original
                 menor_penalizacion,_,_ = self.funcion_costo(individuo)
                 # Probar n alternativas
-                n_alternativas_actual = int(n_alternativas_init - (n_alternativas_init - n_alternativas_max) 
-                    * (self.generacion_actual / self.total_generaciones))
-                for _ in range(n_alternativas_actual):
+                for _ in range(n_alternativas):
                     nuevo_salon = random.choice(self.salones)
                     nuevo_horario = random.choice(self.horarios)
                     docentes_permitidos = self.docentes_por_curso.get(curso.codigo, [])
@@ -254,14 +252,17 @@ class AmbienteAlgoritmo:
             return 0
         return suma_distancias / contador
 
-    def tasa_mutacion_adaptativa(self, tasa_inicial: float, generacion: int, total_generaciones: int, poblacion: list[Individuo],
-                              min_tasa: float = 0.05, max_tasa: float = 0.3, umbral_diversidad: float = 0.05) -> float:
-        # Disminución lineal base
+    # La tasa de mutacion se reduce conforme pasan las generaciones (de forma lineal)
+    # Si hay poca diversidad se aumenta
+    def tasa_mutacion_adaptativa(self, tasa_inicial: float, generacion: int, total_generaciones: int,
+                                diversidad: float, umbral_diversidad, min_tasa: float = 0.1,
+                                potenciador_min = 1, potenciador_max = 8) -> float:
         tasa_base = tasa_inicial - (tasa_inicial - min_tasa) * (generacion / total_generaciones)
-        diversidad = self.calcular_diversidad(poblacion)  # Define una función que mida la diversidad
+        potenciador = potenciador_min + (potenciador_max - potenciador_min) * (generacion / total_generaciones)
         # Si la diversidad es muy baja, incrementa la tasa de mutación hasta max_tasa
+        #Logger.instance().log(f"Diversidad: {diversidad} Umbral: {umbral_diversidad}")
         if diversidad < umbral_diversidad:
-            tasa_base = min(max_tasa, tasa_base * 1.5)
+            tasa_base = tasa_base * potenciador
         return tasa_base
 
     # Mutación: Con una probabilidad, se cambia el salón y/o el horario de un curso
@@ -316,10 +317,10 @@ class AmbienteAlgoritmo:
         else:
             return 100
 
-    def reinsertar_poblacion(self, generacion, reinsertion_interval, poblacion, size_poblacion, porcentaje_reinsertion):
-        if generacion > 0 and generacion % reinsertion_interval == 0:
-            num_reinsertar = int(size_poblacion * porcentaje_reinsertion)
-            Logger.instance().log(f"Reinserción: Se reintroducen {num_reinsertar} individuos aleatorios en la generación {generacion}.")
+    def reinsertar_poblacion(self, generacion, intervalo_reinsercion, poblacion, size_poblacion, porcentaje_reinsercion):
+        if generacion > 0 and generacion % intervalo_reinsercion == 0:
+            num_reinsertar = int(size_poblacion * porcentaje_reinsercion)
+            #Logger.instance().log(f"Reinserción: Se reintroducen {num_reinsertar} individuos aleatorios en la generación {generacion}.")
             for _ in range(num_reinsertar):
                 # Generamos un individuo aleatorio
                 individuo_random = self.crear_individuo()
@@ -327,6 +328,24 @@ class AmbienteAlgoritmo:
                 poblacion[-1] = individuo_random
                 # Vuelve a ordenar la población nueva para mantener la mejor solución al inicio
                 poblacion.sort(key=lambda ind: self.funcion_costo(ind)[0])
+
+        return poblacion
+
+    def reinsertar_poblacion_adaptativo(self, intervalo_reinsercion, poblacion, size_poblacion, 
+                                        porcentaje_reinsercion, umbral_diversidad=0.001):
+        diversidad_actual = self.calcular_diversidad(poblacion)
+        #Logger.instance().log(f"Reinserción adaptativa: Diversidad {diversidad_actual:.5f} Umbral {umbral_diversidad}.")
+        # Si la diversidad cae por debajo del umbral y se cumple el intervalo, se realiza la reinserción
+        if diversidad_actual < umbral_diversidad:
+            num_reinsertar = int(size_poblacion * porcentaje_reinsercion)
+            #Logger.instance().log(f"Reinserción adaptativa: Diversidad {diversidad_actual:.5f} menor a {umbral_diversidad}. Se reintroducen {num_reinsertar} individuos en la generación {self.generacion_actual}.")
+            for _ in range(num_reinsertar):
+                nuevo_individuo = self.crear_individuo()
+                # Reemplazar al peor individuo
+                poblacion[-1] = nuevo_individuo
+                poblacion.sort(key=lambda ind: self.funcion_costo(ind)[0])
+        elif self.generacion_actual > 0 and self.generacion_actual % intervalo_reinsercion == 0:
+            self.reinsertar_poblacion(self.generacion_actual, intervalo_reinsercion, poblacion, size_poblacion, porcentaje_reinsercion)
 
         return poblacion
 
@@ -343,12 +362,15 @@ class AmbienteAlgoritmo:
     def generar_hijo(self, poblacion, tasa_mutacion, generacion, total_generaciones):
         padre1 = self.seleccion_torneo(poblacion, generacion, total_generaciones)
         padre2 = self.seleccion_torneo(poblacion, generacion, total_generaciones)
+        #padre1 = self.seleccion_torneo_fitness_share(poblacion)
+        #padre2 = self.seleccion_torneo_fitness_share(poblacion)
         hijo = self.cruza_adaptativa(padre1, padre2, generacion, total_generaciones)
         hijo = self.mutacion_reparadora(hijo, tasa_mutacion)
         #hijo = self.mutacion(hijo, tasa_mutacion)
         return hijo
 
-    def obtener_elites(self, poblacion_evaluada, generacion, total_generaciones, elite_fraction_min, elite_fraction_max):
+    def obtener_elites(self, poblacion_evaluada, generacion, total_generaciones, elite_fraction_min, elite_fraction_max, 
+                       diversidad, umbral_diversidad):
         """
         Calcula de forma dinámica la fracción de élites a conservar según la generación actual.
         Se asume que 'poblacion_evaluada' es una lista de tuplas (costo, conflictos, individuo)
@@ -357,7 +379,16 @@ class AmbienteAlgoritmo:
         """
         # Ratio de avance: 0 en la primera generación, 1 en la última.
         ratio = generacion / total_generaciones
-        elite_fraction_actual = elite_fraction_min + (elite_fraction_min - elite_fraction_max) * ratio
+        elite_fraction_actual = elite_fraction_min + (elite_fraction_max - elite_fraction_min) * ratio
+
+        if diversidad < umbral_diversidad:
+            # Una opción simple: forzar la fracción a que sea el mínimo,
+            # lo cual incrementa la exploración.
+            #elite_fraction_actual = elite_fraction_min
+            # Alternativamente, podrías usar un factor proporcional:
+            factor = diversidad / umbral_diversidad  # valor entre 0 y 1
+            elite_fraction_actual = elite_fraction_min + (elite_fraction_actual - elite_fraction_min) * factor
+
         elite_count = max(1, int(len(poblacion_evaluada) * elite_fraction_actual))
         # Extraer los 'elite_count' mejores individuos (ya ordenados)
         elites = [tup[2] for tup in poblacion_evaluada[:elite_count]]
@@ -366,27 +397,38 @@ class AmbienteAlgoritmo:
 
     def generar_poblacion(
             self, poblacion_inicial, poblacion, poblacion_evaluada, 
-            fraccion_elite_min, fraccion_elite_max, tasa_mutacion):
-        """
-        """
+            fraccion_elite_min, fraccion_elite_max, tasa_mutacion,
+            intervalo_reinsercion, porcentaje_reinsercion, diversidad, umbral_diversidad):
         elites = self.obtener_elites(
-            poblacion_evaluada, self.generacion_actual, self.total_generaciones, fraccion_elite_min, fraccion_elite_max)
+            poblacion_evaluada, self.generacion_actual, self.total_generaciones, fraccion_elite_min, fraccion_elite_max, 
+            diversidad, umbral_diversidad)
+
         nuevos_hijos = []
-        # Generar el resto de la nueva población
         while len(nuevos_hijos) < (poblacion_inicial - len(elites)):
             nuevos_hijos.append(self.generar_hijo(poblacion, tasa_mutacion, self.generacion_actual, self.total_generaciones))
-        nueva_poblacion = elites + nuevos_hijos
+        nueva_poblacion = nuevos_hijos
 
         """
         nueva_poblacion = []
         for _ in range(poblacion_inicial):
             nueva_poblacion.append(self.generar_hijo(poblacion, tasa_mutacion, self.generacion_actual, self.total_generaciones))
+
+        nueva_poblacion = self.reinsertar_poblacion(self.generacion_actual, intervalo_reinsercion, nueva_poblacion, 
+                                                    poblacion_inicial, porcentaje_reinsercion)
         """
+        """
+        """
+        nuevos_hijos = self.reinsertar_poblacion_adaptativo(intervalo_reinsercion, 
+                                                               nueva_poblacion, (poblacion_inicial - len(elites)), porcentaje_reinsercion)
+        nueva_poblacion = elites + nuevos_hijos
+
         return nueva_poblacion
 
-
     def ejecutar(self, poblacion_inicial, generaciones: int, tasa_mutacion, penalizacion_continuidad,
-        reinsertion_interval = 10, porcentaje_reinsertion = 0.1, fraccion_elite_min = 0.5, fraccion_elite_max = 0.1):
+                 conflicto_esperado, evaluar_conflicto,
+                 continuidad_esperada, evaluar_continuidad,
+                 penalizacion_esperada, evaluar_penalizacion,
+                 intervalo_reinsercion = 10, porcentaje_reinsercion = 0.6, fraccion_elite_min = 0.3, fraccion_elite_max = 0.7):
 
         start_time = time.time()
         process = psutil.Process(os.getpid())
@@ -410,9 +452,10 @@ class AmbienteAlgoritmo:
         for generacion in range(generaciones):
             self.generacion_actual = generacion
             Logger.instance().log(f"============================Generacion {generacion}")
-            print(f"============================Generacion {generacion}")
             #tasa_actual = self.tasa_mutacion_dinamica(tasa_mutacion, generacion, generaciones)
-            tasa_actual = self.tasa_mutacion_adaptativa(tasa_mutacion, generacion, generaciones, poblacion)
+            diversidad = self.calcular_diversidad(poblacion)  # Define una función que mida la diversidad
+            umbral_diversidad = 0.01
+            tasa_actual = self.tasa_mutacion_adaptativa(tasa_mutacion, generacion, generaciones, diversidad, umbral_diversidad)
 
             poblacion_evaluada = self.evaluar_poblacion(poblacion)
             menor_penalizacion, conflictos, mejor_individuo, continuidad_actual = poblacion_evaluada[0]
@@ -422,17 +465,31 @@ class AmbienteAlgoritmo:
             self.continuidad_por_generacion.append(continuidad_actual)
 
             porcentaje_aptitud = (1 / (1 + menor_penalizacion)) * 100
-            Logger.instance().log(f"Aptitud: {porcentaje_aptitud:.5f}% Penalizacion: {menor_penalizacion:.5f} Mutacion: {tasa_actual:.5f} Continuidad: {continuidad_actual:.5f}")
+            Logger.instance().log(f"Aptitud: {porcentaje_aptitud:.5f}% Penalizacion: {menor_penalizacion:.5f} Mutacion: {tasa_actual:.5f} Continuidad: {continuidad_actual:.5f} Diversidad: {diversidad:.5f} Umbral: {umbral_diversidad:.5f}")
             
-            # Criterio de parada: Penalizacion 0
+            converge = True
+
+            if evaluar_conflicto and not (conflictos <= conflicto_esperado):
+                converge = False
+
+            if evaluar_continuidad and not (continuidad_actual >= continuidad_esperada):
+                converge = False
+
+            if evaluar_penalizacion and not (menor_penalizacion <= penalizacion_esperada):
+                converge = False
+
+            if converge:
+                break
+            """
             if menor_penalizacion == 0:
                 convergencia = generacion
                 break
+            """
 
-            nueva_poblacion = self.generar_poblacion(
-                poblacion_inicial, poblacion, poblacion_evaluada, fraccion_elite_min, fraccion_elite_max, tasa_mutacion)
+            nueva_poblacion = self.generar_poblacion(poblacion_inicial, poblacion, poblacion_evaluada, 
+                                                     fraccion_elite_min, fraccion_elite_max, tasa_actual, 
+                                                     intervalo_reinsercion, porcentaje_reinsercion, diversidad, umbral_diversidad)
 
-            nueva_poblacion = self.reinsertar_poblacion(generacion, reinsertion_interval, nueva_poblacion, poblacion_inicial, porcentaje_reinsertion)
             poblacion = nueva_poblacion
 
         end_time = time.time()
@@ -446,8 +503,6 @@ class AmbienteAlgoritmo:
 
         crear_horarios_pdf(self.resultado)
         self.reporte_horarios_pdf = os.path.join(os.getcwd(), "reports", "reporte_horarios.pdf")
-
-
 
     def imprimir_resultado(self):
         if self.resultado is None:

@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use("Qt5Agg")  # Asegura el uso del backend Qt5
+matplotlib.use("Qt5Agg")
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5.QtWidgets import QVBoxLayout, QWidget
