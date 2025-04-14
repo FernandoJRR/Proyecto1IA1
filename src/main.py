@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from utils.genetic_algorithm import *
+from utils.algoritmo import *
 from interface.main_layout import *
 
 def main():

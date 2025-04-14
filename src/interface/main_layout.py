@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QThread, pyqtSignal
 from interface.relacion_layout import RelacionesTab
-from utils.genetic_algorithm import *
-from interface.genetic_algorithm_layout import GALayout
+from utils.algoritmo import *
+from interface.algoritmo_layout import GALayout
 from interface.cursos_layout import CursosTab
 from interface.docentes_layout import DocentesTab
 from interface.salones_layout import SalonesTab

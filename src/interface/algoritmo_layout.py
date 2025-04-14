@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QHBoxLayout, QLab
 from interface.logger import Logger
 from interface.pdf_viewer import PDFViewer
 from interface.plot_viewer import ConflictPlot, ContinuidadPlot
-from utils.genetic_algorithm import AmbienteAlgoritmo
+from utils.algoritmo import AmbienteAlgoritmo
 
 class GALayout(QWidget):
     def __init__(self, parent=None):
