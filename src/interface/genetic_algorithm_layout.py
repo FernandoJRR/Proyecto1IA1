@@ -13,11 +13,9 @@ class GALayout(QWidget):
         self.initUI()
     
     def initUI(self):
-        # Layout principal de la pestaña "Generar Horario"
         layout = QVBoxLayout()
 
         header_hlayout = QHBoxLayout()
-        # Grupo de parámetros
         param_group = QGroupBox("Parámetros del Algoritmo")
         param_layout = QGridLayout()
 
@@ -51,12 +49,9 @@ class GALayout(QWidget):
         param_group.setLayout(param_layout)
         header_hlayout.addWidget(param_group)
 
-        # Creamos una pestaña o un grupo adicional para la consola
         console_group = QGroupBox("Consola")
         console_layout = QVBoxLayout()
-        # Obtenemos la instancia del Logger
         self.console = Logger.instance()
-        # Opcionalmente, se pueden ajustar propiedades adicionales:
         self.console.setSizePolicy(self.console.sizePolicy().Expanding, 
                                    self.console.sizePolicy().Expanding)
         self.console.textChanged.connect(
@@ -70,7 +65,6 @@ class GALayout(QWidget):
         layout.addLayout(header_hlayout)
 
 
-        # Grupo para parametros de evaluacion
         eval_group = QGroupBox("Parámetros de Evaluacion")
         eval_layout = QGridLayout()
 
@@ -96,7 +90,6 @@ class GALayout(QWidget):
         eval_group.setLayout(eval_layout)
         layout.addWidget(eval_group)
 
-        # Grupo para mostrar el PDF del reporte (vacío al inicio)
         self.pdf_group = QGroupBox("Horario Generado")
         self.pdf_group.setMinimumHeight(400)
         self.pdf_layout = QVBoxLayout()
@@ -114,7 +107,6 @@ class GALayout(QWidget):
         report_group.setLayout(report_layout)
         reports_hlayout.addWidget(report_group)
 
-        # Grupo para mostrar los reportes del algoritmo
         history_group = QGroupBox("Reportes del Algoritmo")
         history_layout = QVBoxLayout()
         self.history_text = QTextEdit()
@@ -137,7 +129,6 @@ class GALayout(QWidget):
         self.plot_continuidad_group.setLayout(self.plot_continuidad_layout)
         layout.addWidget(self.plot_continuidad_group)
 
-        # Asignar el layout al widget
         self.setLayout(layout)
 
     def start_ga(self):
@@ -172,7 +163,6 @@ class GALayout(QWidget):
         self.worker.start()
 
     def display_result(self, result_data: dict):
-        # Preparar y mostrar los reportes
         tiempo = result_data.get("tiempo", "N/A")
         iteraciones = result_data.get("iteraciones", "N/A")
         conflictos = result_data.get("conflictos", [])
@@ -196,10 +186,8 @@ class GALayout(QWidget):
         )
         self.history_text.setPlainText(history_output)
 
-        # Verificar si se generó el reporte PDF (se asume que ambiente.pdf_report fue asignado)
         pdf_path = result_data.get("reporte_horarios_pdf", None)
         if pdf_path:
-            # Si ya existe un visor anterior, eliminarlo
             if self.pdf_viewer is not None:
                 self.pdf_layout.removeWidget(self.pdf_viewer)
                 self.pdf_viewer.deleteLater()
@@ -207,31 +195,25 @@ class GALayout(QWidget):
             self.pdf_viewer = PDFViewer(pdf_path)
             self.pdf_layout.addWidget(self.pdf_viewer)
 
-        # Mostrar gráfica de conflictos a lo largo de las generaciones.
         if conflictos:
-            # Si ya existe una gráfica en el layout se elimina
             if hasattr(self, "conflict_plot"):
                 self.plot_layout.removeWidget(self.conflict_plot)
                 self.conflict_plot.deleteLater()
             self.conflict_plot = ConflictPlot(conflictos, self)
-            # Agregar la grafica al final del layout principal.
             self.plot_layout.addWidget(self.conflict_plot)
 
-        # Mostrar gráfica de conflictos a lo largo de las generaciones.
         if continuidades:
-            # Si ya existe una gráfica en el layout se elimina
             if hasattr(self, "continuidad_plot"):
                 self.plot_continuidad_layout.removeWidget(self.continuidad_plot)
                 self.continuidad_plot.deleteLater()
             self.continuidad_plot = ContinuidadPlot(continuidades, self)
-            # Agregar la grafica al final del layout principal.
             self.plot_continuidad_layout.addWidget(self.continuidad_plot)
 
         self.run_button.setEnabled(True)
 
 # QThread para poder ejecutar el algoritmo dentro de la interfaz
 class GAWorker(QThread):
-    # Señal que envía todos los datos del algoritmo (horario y reportes)
+    # signal que envía todos los datos del algoritmo (horario y reportes)
     result_signal = pyqtSignal(dict)
 
     def __init__(self, poblacion_inicial: int, generaciones: int, tasa_mutacion: float, penalizacion_continuidad: float, 
@@ -267,13 +249,6 @@ class GAWorker(QThread):
                           self.penalizacion_esperada, self.evaluar_penalizacion,
                           self.generaciones_reinsercion, self.porcentaje_reinsercion)
 
-        # Se asume que AmbienteAlgoritmo ha calculado los siguientes atributos:
-        # - ambiente.resultado: el horario generado (dict)
-        # - ambiente.conflictos_por_generacion: lista de conflictos a lo largo de las generaciones
-        # - ambiente.iteraciones_optimas: cantidad de iteraciones hasta alcanzar el óptimo
-        # - ambiente.tiempo_ejecucion: tiempo total de ejecución (en segundos)
-        # - ambiente.porcentaje_continuidad: porcentaje de cursos consecutivos por semestre
-        # - ambiente.memoria_consumida: espacio en memoria usado por el algoritmo (en MB)
         result_data = {
             "horario": ambiente.resultado,
             "conflictos": ambiente.conflictos_por_generacion,

@@ -9,7 +9,6 @@ class Logger(QPlainTextEdit):
     
     @classmethod
     def instance(cls):
-        # Devuelve instancia
         if cls._instance is None:
             cls._instance = Logger()
         return cls._instance

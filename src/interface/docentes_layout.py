@@ -33,12 +33,10 @@ class DocentesTab(QWidget):
             self.table_docentes.setItem(row, 3, QTableWidgetItem(docente.hora_salida))
 
     def actualizar_docentes(self):
-        # Abrir diálogo para seleccionar el archivo CSV con los nuevos cursos
         file_path, _ = QFileDialog.getOpenFileName(self, "Seleccionar CSV de Docentes", "", "CSV Files (*.csv);;All Files (*)")
         if file_path:
             try:
                 nuevos_docentes = cargar_docentes(file_path)
-                # Actualiza la tabla con los nuevos cursos, sobrescribiendo los actuales
                 guardar_docentes(nuevos_docentes, "data/docentes.csv")
                 self.configurar_tabla(nuevos_docentes)
                 QMessageBox.information(self, "Actualizado", "Los docentes se han actualizado exitosamente.")
