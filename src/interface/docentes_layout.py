@@ -12,14 +12,14 @@ class DocentesTab(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
 
+        self.save_button = QPushButton("Actualizar docentes")
+        self.save_button.clicked.connect(self.actualizar_docentes)
+        layout.addWidget(self.save_button)
+
         self.table_docentes = QTableWidget()
         docentes = cargar_docentes("data/docentes.csv")
         self.configurar_tabla(docentes)
         layout.addWidget(self.table_docentes)
-
-        self.save_button = QPushButton("Actualizar docentes")
-        self.save_button.clicked.connect(self.actualizar_docentes)
-        layout.addWidget(self.save_button)
 
     def configurar_tabla(self, docentes):
         self.table_docentes.clear()

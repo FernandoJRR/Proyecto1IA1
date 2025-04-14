@@ -21,7 +21,6 @@ class MainWindow(QMainWindow):
     def initUI(self):
         self.tabs = QTabWidget()
 
-        # Crear las pestañas
         self.tab_ga = GALayout()
         self.tab_cursos = CursosTab()
         self.tab_docentes = DocentesTab()
@@ -42,7 +41,6 @@ class MainWindow(QMainWindow):
         container.setLayout(main_layout)
         #self.setCentralWidget(container)
 
-        # Aquí se envuelve el widget contenedor en un QScrollArea
         scroll_area = QScrollArea()
         scroll_area.setWidget(container)
         scroll_area.setWidgetResizable(True)

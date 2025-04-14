@@ -60,7 +60,7 @@ class AmbienteAlgoritmo:
             if docentes_permitidos:
                 profesor = random.choice(docentes_permitidos)
             else:
-                profesor = None  # En caso de que no haya docentes permitidos; se puede ajustar según requerimiento
+                profesor = None  # En caso de que no haya docentes permitidos
             horario_ind[curso] = (salon, hora, profesor)
         return horario_ind
 
@@ -153,6 +153,14 @@ class AmbienteAlgoritmo:
                 individuo[curso] = mejor_gen
         return individuo
 
+    def mutacion_adaptativa(self, individuo, tasa_mutacion):
+        ratio = self.generacion_actual / self.total_generaciones
+        randomNum = random.random()
+        if randomNum < (1 - ratio):
+            return self.mutacion_reparadora(individuo, tasa_mutacion)
+        else:
+            return self.mutacion(individuo)
+
     # Selección: Se utiliza torneo simple
     def seleccion_torneo(self, poblacion, tamano=3):
         #Logger.instance().log(f"Torneo con {tamano} individuos")
@@ -188,9 +196,9 @@ class AmbienteAlgoritmo:
         ratio = generacion / total_generaciones
         # mientras mas avance el proceso de generacion mas se favorecera la cruza uniforme
         if random.random() < (1 - ratio):
-            return self.cruza_uniforme(padre1, padre2)
-        else:
             return self.cruza(padre1, padre2)
+        else:
+            return self.cruza_uniforme(padre1, padre2)
 
     # La tasa de mutacion cambia, se reduce linealmente conforme pasan las generaciones
     def tasa_mutacion_dinamica(self, tasa_inicial: float, generacion: int, total_generaciones: int, min_tasa: float = 0.05) -> float:
@@ -204,7 +212,7 @@ class AmbienteAlgoritmo:
             # Compara la asignación de cada curso en ambos individuos
             if ind1.get(curso) != ind2.get(curso):
                 diferencias += 1
-        return diferencias / total  # 0 iguales, 1: distintos
+        return diferencias / total  # 0 iguales, 1 distintos
 
     # Se calcula la diversidad de una poblacion haciendo un promedio de las distancias entre individuos
     def calcular_diversidad(self, poblacion: list[Individuo]) -> float:
@@ -317,7 +325,6 @@ class AmbienteAlgoritmo:
 
     # Se evalua la poblacion en base a la funcion costo
     def evaluar_poblacion(self, poblacion) -> list[tuple[float, int, Individuo, float]]:
-        # Se evalua toda la poblacion con la funcion costo
         poblacion_evaluada = []
         for ind in poblacion:
             costo, conflictos, porcentaje_continuidad_solucion = self.funcion_costo(ind)
@@ -331,7 +338,7 @@ class AmbienteAlgoritmo:
         padre1 = self.seleccion_torneo(poblacion)
         padre2 = self.seleccion_torneo(poblacion)
         hijo = self.cruza_adaptativa(padre1, padre2, generacion, total_generaciones)
-        hijo = self.mutacion_reparadora(hijo, tasa_mutacion)
+        hijo = self.mutacion_adaptativa(hijo, tasa_mutacion)
         return hijo
 
     # Basado en generaciones, elites y diversidad se calcula la cantidad de individuos conservados como elites
@@ -376,6 +383,7 @@ class AmbienteAlgoritmo:
                  conflicto_esperado, evaluar_conflicto,
                  continuidad_esperada, evaluar_continuidad,
                  penalizacion_esperada, evaluar_penalizacion,
+                 umbral_diversidad,
                  intervalo_reinsercion = 10, porcentaje_reinsercion = 0.6, fraccion_elite_min = 0.3, fraccion_elite_max = 0.7):
 
         start_time = time.time()
@@ -402,7 +410,6 @@ class AmbienteAlgoritmo:
             Logger.instance().log(f"============================Generacion {generacion}")
             #tasa_actual = self.tasa_mutacion_dinamica(tasa_mutacion, generacion, generaciones)
             diversidad = self.calcular_diversidad(poblacion)
-            umbral_diversidad = 0.01
             tasa_actual = self.tasa_mutacion_adaptativa(tasa_mutacion, generacion, generaciones, diversidad, umbral_diversidad)
 
             poblacion_evaluada = self.evaluar_poblacion(poblacion)
@@ -427,6 +434,7 @@ class AmbienteAlgoritmo:
                 converge = False
 
             if converge:
+                convergencia = generacion
                 break
 
             nueva_poblacion = self.generar_poblacion(poblacion_inicial, poblacion, poblacion_evaluada, 
