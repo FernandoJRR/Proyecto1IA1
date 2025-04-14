@@ -1,0 +1,101 @@
+nombre,codigo,carrera,semestre,seccion,tipo
+Cálculo Diferencial,CIV101,Ingeniería Civil,1,A,Obligatorio
+Geometría Descriptiva,CIV102,Ingeniería Civil,1,B,Obligatorio
+Estática,CIV103,Ingeniería Civil,2,A,Obligatorio
+Dinámica,CIV104,Ingeniería Civil,2,C,Obligatorio
+Mecánica de Suelos,CIV105,Ingeniería Civil,3,B,Obligatorio
+Mecánica de Materiales,CIV106,Ingeniería Civil,3,A,Obligatorio
+Resistencia de Materiales,CIV107,Ingeniería Civil,4,D,Obligatorio
+Diseño Estructural,CIV108,Ingeniería Civil,4,C,Obligatorio
+Hidráulica,CIV109,Ingeniería Civil,5,B,Obligatorio
+Transporte,CIV110,Ingeniería Civil,5,A,Electivo
+Construcción de Obras,CIV111,Ingeniería Civil,6,C,Obligatorio
+Gestión de la Construcción,CIV112,Ingeniería Civil,6,B,Obligatorio
+Topografía,CIV113,Ingeniería Civil,1,D,Electivo
+Administración de Proyectos,CIV114,Ingeniería Civil,7,A,Obligatorio
+Ingeniería de Costos,CIV115,Ingeniería Civil,7,C,Obligatorio
+Introducción a la Programación,INF101,Ingeniería en Sistemas,1,A,Obligatorio
+Fundamentos de Sistemas,INF102,Ingeniería en Sistemas,1,B,Obligatorio
+Estructuras de Datos,INF201,Ingeniería en Sistemas,2,A,Obligatorio
+Algoritmos,INF202,Ingeniería en Sistemas,2,B,Obligatorio
+Programación Orientada a Objetos,INF203,Ingeniería en Sistemas,3,A,Obligatorio
+Bases de Datos,INF204,Ingeniería en Sistemas,3,B,Obligatorio
+Sistemas Operativos,INF205,Ingeniería en Sistemas,4,C,Obligatorio
+Redes de Computadoras,INF206,Ingeniería en Sistemas,4,A,Obligatorio
+Ingeniería de Software,INF207,Ingeniería en Sistemas,5,B,Obligatorio
+Arquitectura de Computadoras,INF208,Ingeniería en Sistemas,5,C,Electivo
+Seguridad Informática,INF209,Ingeniería en Sistemas,6,A,Obligatorio
+Inteligencia Artificial,INF210,Ingeniería en Sistemas,6,B,Electivo
+Desarrollo Web,INF211,Ingeniería en Sistemas,7,C,Obligatorio
+Computación en la Nube,INF212,Ingeniería en Sistemas,7,D,Electivo
+Big Data,INF213,Ingeniería en Sistemas,8,A,Obligatorio
+Estadística,IND101,Ingeniería Industrial,1,A,Obligatorio
+Economía de la Empresa,IND102,Ingeniería Industrial,1,B,Obligatorio
+Administración de Operaciones,IND103,Ingeniería Industrial,2,C,Obligatorio
+Investigación de Operaciones,IND104,Ingeniería Industrial,2,D,Obligatorio
+Logística,IND105,Ingeniería Industrial,3,A,Obligatorio
+Gestión de Calidad,IND106,Ingeniería Industrial,3,B,Obligatorio
+Ergonomía,IND107,Ingeniería Industrial,4,C,Electivo
+Control Estadístico de Calidad,IND108,Ingeniería Industrial,4,A,Obligatorio
+Simulación de Sistemas,IND109,Ingeniería Industrial,5,D,Obligatorio
+Planificación Estratégica,IND110,Ingeniería Industrial,5,B,Electivo
+Gestión de Proyectos,IND111,Ingeniería Industrial,6,A,Obligatorio
+Técnicas de Manufactura,IND112,Ingeniería Industrial,6,C,Obligatorio
+Ingeniería de Métodos,IND113,Ingeniería Industrial,7,B,Obligatorio
+Sistemas de Producción,IND114,Ingeniería Industrial,7,D,Obligatorio
+Mecánica Clásica,MEC101,Ingeniería Mecánica,1,A,Obligatorio
+Termodinámica,MEC102,Ingeniería Mecánica,1,B,Obligatorio
+Mecánica de Materiales,MEC103,Ingeniería Mecánica,2,C,Obligatorio
+Dinámica de Máquinas,MEC104,Ingeniería Mecánica,2,D,Obligatorio
+Dibujo Técnico Mecánico,MEC105,Ingeniería Mecánica,3,A,Obligatorio
+Procesos de Manufactura,MEC106,Ingeniería Mecánica,3,B,Electivo
+Sistemas de Control,MEC107,Ingeniería Mecánica,4,C,Obligatorio
+Materiales de Ingeniería,MEC108,Ingeniería Mecánica,4,D,Obligatorio
+Diseño Mecánico,MEC109,Ingeniería Mecánica,5,A,Obligatorio
+Vibraciones,MEC110,Ingeniería Mecánica,5,B,Electivo
+Mecánica de Fluidos,MEC111,Ingeniería Mecánica,6,C,Obligatorio
+Dinámica de Fluidos,MEC112,Ingeniería Mecánica,6,D,Obligatorio
+Instrumentación,MEC113,Ingeniería Mecánica,7,A,Electivo
+Diseño Asistido por Computadora,MEC114,Ingeniería Mecánica,7,B,Obligatorio
+Circuitos Eléctricos,ELE101,Ingeniería Eléctrica,1,A,Obligatorio
+Electromagnetismo,ELE102,Ingeniería Eléctrica,1,B,Obligatorio
+Circuitos Digitales,ELE103,Ingeniería Eléctrica,2,C,Obligatorio
+Análisis de Señales,ELE104,Ingeniería Eléctrica,2,D,Obligatorio
+Máquinas Eléctricas,ELE105,Ingeniería Eléctrica,3,A,Obligatorio
+Sistemas de Potencia,ELE106,Ingeniería Eléctrica,3,B,Obligatorio
+Electrónica Analógica,ELE107,Ingeniería Eléctrica,4,C,Obligatorio
+Electrónica Digital,ELE108,Ingeniería Eléctrica,4,D,Obligatorio
+Control Automático,ELE109,Ingeniería Eléctrica,5,A,Obligatorio
+Instrumentación Eléctrica,ELE110,Ingeniería Eléctrica,5,B,Electivo
+Protección de Sistemas,ELE111,Ingeniería Eléctrica,6,C,Obligatorio
+Energías Renovables,ELE112,Ingeniería Eléctrica,6,D,Electivo
+Sistemas Embebidos,ELE113,Ingeniería Eléctrica,7,A,Obligatorio
+Robótica,ELE114,Ingeniería Eléctrica,7,B,Electivo
+Introducción a la Ingeniería Ambiental,AMB101,Ingeniería Ambiental,1,A,Obligatorio
+Contaminación y Medio Ambiente,AMB102,Ingeniería Ambiental,1,B,Obligatorio
+Gestión Ambiental,AMB103,Ingeniería Ambiental,2,C,Obligatorio
+Evaluación de Impacto Ambiental,AMB104,Ingeniería Ambiental,2,D,Obligatorio
+Gestión de Residuos,AMB105,Ingeniería Ambiental,3,A,Obligatorio
+Energías Renovables Ambientales,AMB106,Ingeniería Ambiental,3,B,Electivo
+Recursos Naturales,AMB107,Ingeniería Ambiental,4,C,Obligatorio
+Legislación Ambiental,AMB108,Ingeniería Ambiental,4,D,Obligatorio
+Calidad del Aire,AMB109,Ingeniería Ambiental,5,A,Obligatorio
+Calidad del Agua,AMB110,Ingeniería Ambiental,5,B,Obligatorio
+Gestión de Ecosistemas,AMB111,Ingeniería Ambiental,6,C,Electivo
+Biodiversidad,AMB112,Ingeniería Ambiental,6,D,Obligatorio
+Tecnologías Limpias,AMB113,Ingeniería Ambiental,7,A,Obligatorio
+Sostenibilidad,AMB114,Ingeniería Ambiental,7,B,Obligatorio
+Química General,QUI101,Ingeniería Química,1,A,Obligatorio
+Química Orgánica,QUI102,Ingeniería Química,1,B,Obligatorio
+Química Inorgánica,QUI103,Ingeniería Química,2,C,Obligatorio
+Termoquímica,QUI104,Ingeniería Química,2,D,Obligatorio
+Físicoquímica,QUI105,Ingeniería Química,3,A,Obligatorio
+Procesos Químicos,QUI106,Ingeniería Química,3,B,Obligatorio
+Operaciones Unitarias,QUI107,Ingeniería Química,4,C,Obligatorio
+Ingeniería de Reactores,QUI108,Ingeniería Química,4,D,Obligatorio
+Ingeniería de Separaciones,QUI109,Ingeniería Química,5,A,Obligatorio
+Diseño de Procesos,QUI110,Ingeniería Química,5,B,Obligatorio
+Seguridad en Procesos Químicos,QUI111,Ingeniería Química,6,C,Electivo
+Control de Procesos,QUI112,Ingeniería Química,6,D,Obligatorio
+Tecnologías de Energía Química,QUI113,Ingeniería Química,7,A,Electivo
+Innovación Química,QUI114,Ingeniería Química,7,B,Obligatorio
