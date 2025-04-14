@@ -355,7 +355,7 @@ class AmbienteAlgoritmo:
         elite_count = max(1, int(len(poblacion_evaluada) * elite_fraction_actual))
         # Extraer los 'elite_count' mejores individuos (ya ordenados)
         elites = [tup[2] for tup in poblacion_evaluada[:elite_count]]
-        Logger.instance().log(f"Generación {generacion}: Se conservan {elite_count} élites (fractions: {elite_fraction_actual:.2f}).")
+        Logger.instance().log(f"Generación {generacion}: Se conservan {elite_count} élites (fraccion: {elite_fraction_actual:.2f}).")
         return elites
 
     # Se genera una poblacion
@@ -420,7 +420,7 @@ class AmbienteAlgoritmo:
             self.continuidad_por_generacion.append(continuidad_actual)
 
             porcentaje_aptitud = (1 / (1 + menor_penalizacion)) * 100
-            Logger.instance().log(f"Aptitud: {porcentaje_aptitud:.5f}% Penalizacion: {menor_penalizacion:.5f} Mutacion: {tasa_actual:.5f} Continuidad: {continuidad_actual:.5f} Diversidad: {diversidad:.5f} Umbral: {umbral_diversidad:.5f}")
+            Logger.instance().log(f"Aptitud: {porcentaje_aptitud:.5f}% Penalizacion: {menor_penalizacion:.5f} Mutacion: {tasa_actual:.5f} Continuidad: {continuidad_actual:.5f} Diversidad: {diversidad:.5f}")
             
             converge = True
 
