@@ -17,13 +17,12 @@ class DocentesTab(QWidget):
         self.configurar_tabla(docentes)
         layout.addWidget(self.table_docentes)
 
-        # Botón para guardar el estado de la tabla
         self.save_button = QPushButton("Actualizar docentes")
         self.save_button.clicked.connect(self.actualizar_docentes)
         layout.addWidget(self.save_button)
 
     def configurar_tabla(self, docentes):
-        self.table_docentes.clear()  # Limpia contenidos previos si es necesario
+        self.table_docentes.clear()
         self.table_docentes.setRowCount(len(docentes))
         self.table_docentes.setColumnCount(6)
         self.table_docentes.setHorizontalHeaderLabels(["Nombre", "Registro", "Hora Entrada", "Hora Salida"])

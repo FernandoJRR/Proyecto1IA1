@@ -1,6 +1,4 @@
-# cursos_tab.py
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QPushButton, QMessageBox, QFileDialog
-from models.curso import Curso
 from utils.data_handler import cargar_cursos, guardar_cursos
 
 class CursosTab(QWidget):
@@ -18,13 +16,12 @@ class CursosTab(QWidget):
         self.configurar_tabla(cursos)
         layout.addWidget(self.table_cursos)
 
-        # Botón para guardar el estado de la tabla
         self.save_button = QPushButton("Actualizar cursos")
         self.save_button.clicked.connect(self.actualizar_cursos)
         layout.addWidget(self.save_button)
 
     def configurar_tabla(self, cursos):
-        self.table_cursos.clear()  # Limpia contenidos previos si es necesario
+        self.table_cursos.clear()
         self.table_cursos.setRowCount(len(cursos))
         self.table_cursos.setColumnCount(6)
         self.table_cursos.setHorizontalHeaderLabels(["Nombre", "Código", "Carrera", "Semestre", "Sección", "Tipo"])
@@ -38,12 +35,10 @@ class CursosTab(QWidget):
 
 
     def actualizar_cursos(self):
-        # Abrir diálogo para seleccionar el archivo CSV con los nuevos cursos
         file_path, _ = QFileDialog.getOpenFileName(self, "Seleccionar CSV de Cursos", "", "CSV Files (*.csv);;All Files (*)")
         if file_path:
             try:
                 nuevos_cursos = cargar_cursos(file_path)
-                # Actualiza la tabla con los nuevos cursos, sobrescribiendo los actuales
                 guardar_cursos(nuevos_cursos, "data/cursos.csv")
                 self.configurar_tabla(nuevos_cursos)
                 QMessageBox.information(self, "Actualizado", "Los cursos se han actualizado exitosamente.")

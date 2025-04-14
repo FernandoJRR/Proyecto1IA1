@@ -50,7 +50,7 @@ class AmbienteAlgoritmo:
                     if docente not in self.docentes_por_curso[relacion.codigo_curso]:
                         self.docentes_por_curso[relacion.codigo_curso].append(docente)
 
-    # Representación: Cada individuo es un diccionario {curso: (salón, horario)}
+    # Creacion de un individuo
     def crear_individuo(self) -> Individuo:
         horario_ind: Individuo = {}
         for curso in self.cursos:
@@ -64,12 +64,12 @@ class AmbienteAlgoritmo:
             horario_ind[curso] = (salon, hora, profesor)
         return horario_ind
 
+    # La penalizacion por la continuidad aumenta dinamicamente conforme pasan las generaciones
     def penalizacion_continuidad_dinamica(self, generacion, total_generaciones, peso_inicial, peso_final=50):
-        # Interpolación lineal: aumenta el peso de penalización por continuidad conforme avanza la evolución
         ratio = generacion / total_generaciones
         return peso_inicial + (peso_final - peso_inicial) * ratio
 
-    # Función de costo: 
+    # Función de costo
     # Penaliza una solucion basado en conflictos y la continuidad de esta 
     def funcion_costo(self, individuo: Individuo) -> tuple[float, int, float]:
         penalizacion = 0
@@ -128,7 +128,7 @@ class AmbienteAlgoritmo:
         return (penalizacion, conflictos, porcentaje_continuidad_solucion)
 
     # Mutación Reparadora 
-    # para cada curso, con cierta probabilidad se prueban varias alternativas y se escoge la que minimice la función de aptitud.
+    # para cada curso, con cierta probabilidad se prueban varias alternativas y se escoge la que minimice la función de costo.
     def mutacion_reparadora(self, individuo: Individuo, tasa_mutacion=0.1, n_alternativas=3) -> dict:
         for curso in individuo:
             if random.random() < tasa_mutacion:
@@ -153,27 +153,8 @@ class AmbienteAlgoritmo:
                 individuo[curso] = mejor_gen
         return individuo
 
-    def calcular_tamano_torneo(self, poblacion, generacion, total_generaciones, tamano_min=2, max_torneo_fraction=0.3):
-        """
-        Calcula el tamaño del torneo de forma adaptativa:
-        - Al inicio se usa 'tamano_min'.
-        - Al final se usa hasta 'max_torneo_fraction' * (tamaño de la población).
-        Se interpola linealmente en función del progreso de la evolución.
-        """
-        poblacion_size = len(poblacion)
-        # Tamaño máximo posible basado en la fracción de la población
-        tamano_max = int(poblacion_size * max_torneo_fraction)
-        
-        # Interpolación lineal:
-        tamano_torneo = tamano_min + int((tamano_max - tamano_min) * (generacion / total_generaciones))
-        
-        # Aseguramos que sea al menos 2
-        return max(2, tamano_torneo)
-
     # Selección: Se utiliza torneo simple
-    def seleccion_torneo(self, poblacion, generacion, total_generaciones):
-        #tamano = self.calcular_tamano_torneo(poblacion, generacion, total_generaciones)
-        tamano = 3
+    def seleccion_torneo(self, poblacion, tamano=3):
         #Logger.instance().log(f"Torneo con {tamano} individuos")
         candidatos = random.sample(poblacion, tamano)
         candidatos.sort(key=lambda ind: self.funcion_costo(ind)[0])
@@ -191,6 +172,7 @@ class AmbienteAlgoritmo:
                 hijo[curso] = padre2[curso]
         return hijo
 
+    # Se usa un cruce uniforme para mezclar parejo a las asignacinoes
     def cruza_uniforme(self, padre1: Individuo, padre2: Individuo) -> Individuo:
         hijo = {}
         for curso in self.cursos:
@@ -200,6 +182,7 @@ class AmbienteAlgoritmo:
                 hijo[curso] = padre2[curso]
         return hijo
 
+    # Alterna entre la cruza normal y uniforme para mejorar la diversidad
     def cruza_adaptativa(self, padre1: Individuo, padre2: Individuo, generacion: int, total_generaciones: int) -> Individuo:
         # se calcula el ratio basado en que tan avanzado va el proceso de generacion
         ratio = generacion / total_generaciones
@@ -209,35 +192,22 @@ class AmbienteAlgoritmo:
         else:
             return self.cruza(padre1, padre2)
 
+    # La tasa de mutacion cambia, se reduce linealmente conforme pasan las generaciones
     def tasa_mutacion_dinamica(self, tasa_inicial: float, generacion: int, total_generaciones: int, min_tasa: float = 0.05) -> float:
-        """
-        Calcula la tasa de mutación dinámica.
-        Se usa una disminución lineal: en generación 0 se usa tasa_inicial, y en la última
-        generación se usa un valor mínimo 'min_tasa'.
-        """
-        # Disminución lineal: 
-        # tasa_actual = tasa_inicial - (tasa_inicial - min_tasa) * (generacion / total_generaciones)
         return tasa_inicial - (tasa_inicial - min_tasa) * (generacion / total_generaciones)
 
+    # Se calcula la distancia entre dos individuos, esto en base a la cantidad de genes que son iguales
     def distancia(self, ind1: Individuo, ind2: Individuo) -> float:
-        """
-        Calcula una medida de distancia entre dos individuos.
-        Se cuenta la cantidad de cursos con asignaciones diferentes y se divide
-        por el total de cursos, resultando en un valor entre 0 y 1.
-        """
         diferencias = 0
         total = len(self.cursos)
         for curso in self.cursos:
             # Compara la asignación de cada curso en ambos individuos
             if ind1.get(curso) != ind2.get(curso):
                 diferencias += 1
-        return diferencias / total  # 0: idénticos, 1: completamente distintos
+        return diferencias / total  # 0 iguales, 1: distintos
 
+    # Se calcula la diversidad de una poblacion haciendo un promedio de las distancias entre individuos
     def calcular_diversidad(self, poblacion: list[Individuo]) -> float:
-        """
-        Calcula la diversidad de la población como la distancia promedio entre
-        cada par de individuos.
-        """
         if not poblacion:
             return 0
         
@@ -279,14 +249,8 @@ class AmbienteAlgoritmo:
                 individuo[curso] = (nuevo_salon, nuevo_horario, nuevo_profesor)
         return individuo
 
+    # Se calcula el porcentaje de continuidad que tienen los cursos de un horario
     def calcular_continuidad(self, individuo: Individuo) -> float:
-        """
-        Calcula la continuidad promedio del horario para cada grupo de cursos,
-        donde cada grupo se define por (carrera, semestre). Para cada grupo que tenga
-        más de un curso, se calcula el porcentaje de parejas de cursos asignados en horarios consecutivos
-        (según el orden en self.horarios) y se promedia el porcentaje obtenido en todos los grupos.
-        Si ningún grupo tiene más de un curso, se retorna 100.
-        """
         grupos = {}
 
         # Agrupa los cursos según carrera y semestre.
@@ -317,6 +281,7 @@ class AmbienteAlgoritmo:
         else:
             return 100
 
+    # Se reemplaza un porcentaje de la poblacion cada ciertas generaciones por individuos aleatorios para mantener la diversidad
     def reinsertar_poblacion(self, generacion, intervalo_reinsercion, poblacion, size_poblacion, porcentaje_reinsercion):
         if generacion > 0 and generacion % intervalo_reinsercion == 0:
             num_reinsertar = int(size_poblacion * porcentaje_reinsercion)
@@ -331,6 +296,7 @@ class AmbienteAlgoritmo:
 
         return poblacion
 
+    # Alterna entre la reinsercion por diversidad y la reinsercion normal
     def reinsertar_poblacion_adaptativo(self, intervalo_reinsercion, poblacion, size_poblacion, 
                                         porcentaje_reinsercion, umbral_diversidad=0.001):
         diversidad_actual = self.calcular_diversidad(poblacion)
@@ -349,6 +315,7 @@ class AmbienteAlgoritmo:
 
         return poblacion
 
+    # Se evalua la poblacion en base a la funcion costo
     def evaluar_poblacion(self, poblacion) -> list[tuple[float, int, Individuo, float]]:
         # Se evalua toda la poblacion con la funcion costo
         poblacion_evaluada = []
@@ -359,34 +326,23 @@ class AmbienteAlgoritmo:
         poblacion_evaluada.sort(key=lambda tup: tup[0])
         return poblacion_evaluada
     
+    # Se genera un hijo 
     def generar_hijo(self, poblacion, tasa_mutacion, generacion, total_generaciones):
-        padre1 = self.seleccion_torneo(poblacion, generacion, total_generaciones)
-        padre2 = self.seleccion_torneo(poblacion, generacion, total_generaciones)
-        #padre1 = self.seleccion_torneo_fitness_share(poblacion)
-        #padre2 = self.seleccion_torneo_fitness_share(poblacion)
+        padre1 = self.seleccion_torneo(poblacion)
+        padre2 = self.seleccion_torneo(poblacion)
         hijo = self.cruza_adaptativa(padre1, padre2, generacion, total_generaciones)
         hijo = self.mutacion_reparadora(hijo, tasa_mutacion)
-        #hijo = self.mutacion(hijo, tasa_mutacion)
         return hijo
 
+    # Basado en generaciones, elites y diversidad se calcula la cantidad de individuos conservados como elites
     def obtener_elites(self, poblacion_evaluada, generacion, total_generaciones, elite_fraction_min, elite_fraction_max, 
                        diversidad, umbral_diversidad):
-        """
-        Calcula de forma dinámica la fracción de élites a conservar según la generación actual.
-        Se asume que 'poblacion_evaluada' es una lista de tuplas (costo, conflictos, individuo)
-        ordenada de menor a mayor costo (es decir, el mejor primero).
-        La fracción de élites aumentará de 'elite_fraction_min' al inicio a 'elite_fraction_max' al final.
-        """
-        # Ratio de avance: 0 en la primera generación, 1 en la última.
         ratio = generacion / total_generaciones
         elite_fraction_actual = elite_fraction_min + (elite_fraction_max - elite_fraction_min) * ratio
 
+        # si la diversidad cae bajo el umbral se suaviza la cantidad de elites
         if diversidad < umbral_diversidad:
-            # Una opción simple: forzar la fracción a que sea el mínimo,
-            # lo cual incrementa la exploración.
-            #elite_fraction_actual = elite_fraction_min
-            # Alternativamente, podrías usar un factor proporcional:
-            factor = diversidad / umbral_diversidad  # valor entre 0 y 1
+            factor = diversidad / umbral_diversidad
             elite_fraction_actual = elite_fraction_min + (elite_fraction_actual - elite_fraction_min) * factor
 
         elite_count = max(1, int(len(poblacion_evaluada) * elite_fraction_actual))
@@ -395,6 +351,7 @@ class AmbienteAlgoritmo:
         Logger.instance().log(f"Generación {generacion}: Se conservan {elite_count} élites (fractions: {elite_fraction_actual:.2f}).")
         return elites
 
+    # Se genera una poblacion
     def generar_poblacion(
             self, poblacion_inicial, poblacion, poblacion_evaluada, 
             fraccion_elite_min, fraccion_elite_max, tasa_mutacion,
@@ -408,22 +365,13 @@ class AmbienteAlgoritmo:
             nuevos_hijos.append(self.generar_hijo(poblacion, tasa_mutacion, self.generacion_actual, self.total_generaciones))
         nueva_poblacion = nuevos_hijos
 
-        """
-        nueva_poblacion = []
-        for _ in range(poblacion_inicial):
-            nueva_poblacion.append(self.generar_hijo(poblacion, tasa_mutacion, self.generacion_actual, self.total_generaciones))
-
-        nueva_poblacion = self.reinsertar_poblacion(self.generacion_actual, intervalo_reinsercion, nueva_poblacion, 
-                                                    poblacion_inicial, porcentaje_reinsercion)
-        """
-        """
-        """
         nuevos_hijos = self.reinsertar_poblacion_adaptativo(intervalo_reinsercion, 
                                                                nueva_poblacion, (poblacion_inicial - len(elites)), porcentaje_reinsercion)
         nueva_poblacion = elites + nuevos_hijos
 
         return nueva_poblacion
 
+    # se ejecuta el algoritmo
     def ejecutar(self, poblacion_inicial, generaciones: int, tasa_mutacion, penalizacion_continuidad,
                  conflicto_esperado, evaluar_conflicto,
                  continuidad_esperada, evaluar_continuidad,
@@ -453,7 +401,7 @@ class AmbienteAlgoritmo:
             self.generacion_actual = generacion
             Logger.instance().log(f"============================Generacion {generacion}")
             #tasa_actual = self.tasa_mutacion_dinamica(tasa_mutacion, generacion, generaciones)
-            diversidad = self.calcular_diversidad(poblacion)  # Define una función que mida la diversidad
+            diversidad = self.calcular_diversidad(poblacion)
             umbral_diversidad = 0.01
             tasa_actual = self.tasa_mutacion_adaptativa(tasa_mutacion, generacion, generaciones, diversidad, umbral_diversidad)
 
@@ -480,11 +428,6 @@ class AmbienteAlgoritmo:
 
             if converge:
                 break
-            """
-            if menor_penalizacion == 0:
-                convergencia = generacion
-                break
-            """
 
             nueva_poblacion = self.generar_poblacion(poblacion_inicial, poblacion, poblacion_evaluada, 
                                                      fraccion_elite_min, fraccion_elite_max, tasa_actual, 
@@ -499,7 +442,7 @@ class AmbienteAlgoritmo:
         self.tiempo_ejecucion = end_time - start_time
         self.iteraciones_optimas = convergencia
         self.porcentaje_continuidad = self.calcular_continuidad(mejor_individuo)
-        self.memoria_consumida = process.memory_info().rss / (1024 * 1024)  # en MB
+        self.memoria_consumida = process.memory_info().rss / (1024 * 1024)
 
         crear_horarios_pdf(self.resultado)
         self.reporte_horarios_pdf = os.path.join(os.getcwd(), "reports", "reporte_horarios.pdf")
